@@ -101,14 +101,25 @@ class load_store_engine():
             return  str(_model_input+" "+_model_output+" "+_model_base+ " " + batch_cmd)
 
 
+    # def save_engine(self, _cmds, _models):
+    #     save_engine_path = str('--saveEngine=' + str(os.path.join(self.model_path, _models)) + '.engine')
+    #     cmd = str(_cmds)+" "+str(save_engine_path)
+    #     trt_process = subprocess.Popen([cmd], cwd='/usr/src/tensorrt/bin/', shell=True, stdout=subprocess.DEVNULL,
+    #                                    stderr=subprocess.STDOUT)
+    #     while trt_process.poll() == None:
+    #         trt_process.poll()
+    #     trt_process.kill()
     def save_engine(self, _cmds, _models):
-        save_engine_path = str('--saveEngine=' + str(os.path.join(self.model_path, _models)) + '.engine')
-        cmd = str(_cmds)+" "+str(save_engine_path)
-        trt_process = subprocess.Popen([cmd], cwd='/usr/src/tensorrt/bin/', shell=True, stdout=subprocess.DEVNULL,
-                                       stderr=subprocess.STDOUT)
-        while trt_process.poll() == None:
-            trt_process.poll()
-        trt_process.kill()
+        save_engine_path = '--saveEngine=' + os.path.join(self.model_path, _models) + '.engine'
+        cmd = _cmds + " " + save_engine_path
+        trt_process = subprocess.Popen(cmd, cwd='/usr/src/tensorrt/bin/', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = trt_process.communicate()  # Wait for the process to complete
+    
+        if trt_process.returncode != 0:
+            print(f"Error building engine for {_models}:")
+            print(stderr.decode('utf-8'))
+        else:
+            print(f"Successfully built engine for {_models}.")
 
     def save_all(self, commands, models):
         for e_id in range(0, self.num_devices):
