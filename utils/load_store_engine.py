@@ -31,6 +31,7 @@ class load_store_engine():
                 model_base_path = self._model2deploy()
                 dla_cmd = str('--useDLACore=' + str(device_id - 1))
                 workspace_cmd = str('--workspace=' + str(self.ws_dla))
+                mempool_cmd = f'--memPoolSize=workspace:{self.ws_dla}'
                 _model = str(os.path.splitext(self.model_name)[0]) + '_b' + str(self.batch_size_dla)+'_ws'+str(self.ws_dla) + '_' + str(self.device) + str(device_id)
                 engine_CMD = str(
                     './trtexec' + " " + model_base_path + " " + in_io_format + " " +'--allowGPUFallback'+ " " + precision_cmd + " " + " " + dla_cmd + " " +
@@ -39,10 +40,12 @@ class load_store_engine():
                 self.device = 'gpu'
                 model_base_path = self._model2deploy()
                 workspace_cmd = str('--workspace=' + str(self.ws_gpu))
+                mempool_cmd = f'--memPoolSize=workspace:{self.ws_gpu}'
                 _model = str(os.path.splitext(self.model_name)[0]) + '_b' + str(self.batch_size_gpu) + '_ws' + str(
                     self.ws_gpu) + '_' + str(self.device)
-                engine_CMD = str(
-                    './trtexec' + " " + model_base_path + " " + in_io_format + " " + precision_cmd + " " +workspace_cmd)
+                # engine_CMD = str(
+                #     './trtexec' + " " + model_base_path + " " + in_io_format + " " + precision_cmd + " " +workspace_cmd)
+                engine_CMD = f'./trtexec {model_base_path} {in_io_format} {precision_cmd} {mempool_cmd}'
             cmd.append(engine_CMD)
             model.append(_model)
             
@@ -67,6 +70,8 @@ class load_store_engine():
 
     def _model2deploy(self):
         if self.framework == str('.prototxt'):
+            model_full_path = os.path.join(self.model_path, self.model_name)
+            model_full_path = os.path.abspath(model_full_path)  # Convert to absolute path
             _model_output = ''
             _out_io_format = '--outputIOFormats='
             out_names = self.model_output.split(":")
@@ -76,7 +81,8 @@ class load_store_engine():
                 _out_io_format += str(str(self.precision) + ':chw+chw4+chw32,')
             
             #_model_output = str('--output=' + str(self.model_output))
-            _model_base = str('--deploy=' + str(os.path.join(self.model_path, self.model_name)))
+            # _model_base = str('--deploy=' + str(os.path.join(self.model_path, self.model_name)))
+            _model_base = f'--deploy={model_full_path}'
             if self.device=='gpu':
                 batch_cmd = str('--batch=' + str(self.batch_size_gpu))
             elif self.device == 'dla':
