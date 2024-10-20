@@ -124,36 +124,58 @@ class load_store_engine():
     def save_all(self, commands, models):
         for e_id in range(0, self.num_devices):
             self.save_engine(commands[e_id], models[e_id])
-
+            
     def load_engine(self, _cmds, _models, load_output):
-        load_engine_path = str('--loadEngine=' + str(os.path.join(self.model_path, _models)) + '.engine')
-        avgruns_cmd = str('--avgRuns=100')+" "+'--duration=180'
-        cmd = str(_cmds)+" "+ avgruns_cmd + " " + str(load_engine_path)
-        _trt_process = subprocess.Popen([cmd], cwd='/usr/src/tensorrt/bin/', shell=True, stdout=load_output,
-                                      stderr=subprocess.STDOUT)
-        self.trt_process.append(_trt_process)
+        load_engine_path = '--loadEngine=' + os.path.join(self.model_path, _models) + '.engine'
+        avgruns_cmd = '--avgRuns=100 --duration=180'
+        cmd = _cmds + " " + avgruns_cmd + " " + load_engine_path
+        trt_process = subprocess.Popen(cmd, cwd='/usr/src/tensorrt/bin/', shell=True, stdout=load_output, stderr=load_output)
+        trt_process.wait()  # Wait for the process to complete
+        if trt_process.returncode != 0:
+            print(f"Error loading engine for {_models}. Check {load_output.name} for details.")
+        else:
+            print(f"Successfully loaded engine for {_models}.")
 
+    # def load_all(self, commands, models):
+    #     load_threads = []
+    #     load_file_list = []
+    #     for e_id in range(0, self.num_devices):
+    #         load_file = os.path.join(self.model_path, models[e_id] + '.txt')
+    #         load_output = open(load_file, 'w')
+    #         _load_threads = threading.Thread(target=self.load_engine(commands[e_id], models[e_id], load_output))
+    #         load_threads.append(_load_threads)
+    #         load_file_list.append(load_output)
+    #         time.sleep(10)# Load memory
+    #     # Start Threads 
+    #     for lt in load_threads:
+    #         lt.start()
+    #     # Wait till threads are synchronize
+    #     for lt in load_threads:
+    #         lt.join()
+    #     # Kill the subprocessess once complete
+    #     for tp in self.trt_process:
+    #         while tp.poll() == None:
+    #             tp.poll()
+    #         tp.kill()
+    #     for flist in load_file_list:
+    #         flist.close()
     def load_all(self, commands, models):
         load_threads = []
         load_file_list = []
         for e_id in range(0, self.num_devices):
             load_file = os.path.join(self.model_path, models[e_id] + '.txt')
             load_output = open(load_file, 'w')
-            _load_threads = threading.Thread(target=self.load_engine(commands[e_id], models[e_id], load_output))
-            load_threads.append(_load_threads)
+            _load_thread = threading.Thread(target=self.load_engine, args=(commands[e_id], models[e_id], load_output))
+            load_threads.append(_load_thread)
             load_file_list.append(load_output)
-            time.sleep(10)# Load memory
-        # Start Threads 
+            time.sleep(10)  # Load memory
+        # Start Threads
         for lt in load_threads:
             lt.start()
-        # Wait till threads are synchronize
+        # Wait till threads are complete
         for lt in load_threads:
             lt.join()
-        # Kill the subprocessess once complete
-        for tp in self.trt_process:
-            while tp.poll() == None:
-                tp.poll()
-            tp.kill()
+        # Close output files
         for flist in load_file_list:
             flist.close()
 
