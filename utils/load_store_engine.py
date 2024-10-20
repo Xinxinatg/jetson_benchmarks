@@ -73,12 +73,19 @@ class load_store_engine():
             model_full_path = os.path.join(self.model_path, self.model_name)
             model_full_path = os.path.abspath(model_full_path)  # Convert to absolute path
             _model_output = ''
-            _out_io_format = '--outputIOFormats='
+            # _out_io_format = '--outputIOFormats='
             out_names = self.model_output.split(":")
             for out in out_names:
                 _model_output += str('--output=' + str(out) + ' ')
-            for idx in range(len(out_names)):
-                _out_io_format += str(str(self.precision) + ':chw+chw4+chw32,')
+            _model_output = ''
+            out_io_formats = []
+            out_names = self.model_output.split(":")
+            for out in out_names:
+                _model_output += f'--output={out} '
+                out_io_formats.append(f'{self.precision}:chw+chw4+chw32')
+            _out_io_format = '--outputIOFormats=' + ','.join(out_io_formats)
+            # for idx in range(len(out_names)):
+            #     _out_io_format += str(str(self.precision) + ':chw+chw4+chw32,')
             
             #_model_output = str('--output=' + str(self.model_output))
             # _model_base = str('--deploy=' + str(os.path.join(self.model_path, self.model_name)))
